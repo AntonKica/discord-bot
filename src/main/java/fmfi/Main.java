@@ -35,34 +35,15 @@ public class Main extends ListenerAdapter {
 
     private static final List<String> acceptedRoles = List.of("Informatika", "Matematika", "Fyzika");
 
-    static Session mailSession;
-    static String mailFrom;
-
     static Connection connection;
+    static UnibaMailer mailer;
 
     public static void main(String[] args) throws InterruptedException, SQLException {
+        mailer = new UnibaMailer();
+        
         final String jdbcUrl = System.getProperty("jdbc.url");
         connection = DriverManager.getConnection(jdbcUrl);
         connection.setAutoCommit(true);
-
-        final String smtpHost = System.getProperty("smtp.host");
-        final String smtpPort = System.getProperty("smtp.port");
-        final String smtpMail = System.getProperty("smtp.mail");
-        final String smtpPass = System.getProperty("smtp.pass");
-
-        Properties props = new Properties();
-        props.put("mail.smtp.host", smtpHost);
-        props.put("mail.smtp.port", smtpPort);
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-
-        mailSession = Session.getInstance(props, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(smtpMail, smtpPass);
-            }
-        });
-        mailFrom = smtpMail;
 
         // We don't need any intents for this bot. Slash commands work without any intents!
         JDA jda = JDABuilder.createLight(System.getProperty("discord.token"), Collections.emptyList())
@@ -133,30 +114,11 @@ public class Main extends ListenerAdapter {
                     throw new RuntimeException(e);
                 }
 
-                InternetAddress[] sendMail = new InternetAddress[0]; // can be any email id
-                try {
-                    String commaFreeAisName = aisName.replaceAll(",", "");
-                    sendMail = InternetAddress.parse(commaFreeAisName + "@uniba.sk");
-                } catch (AddressException e) {
-                    logger.warn("Failed to parse an email address", e);
-                    event.reply("Failed to assemble an email address").setEphemeral(true).queue();
+                if(!mailer.sendMail(aisName, "FMFI Discord server verification code", randomCode)) {
+                    event.reply("Failed to send mail to your account").setEphemeral(true).queue();
                     break;
                 }
-
-                try {
-                    Message message = new SMTPMessage(mailSession);
-                    message.setFrom(new InternetAddress(mailFrom));
-                    message.setRecipients(Message.RecipientType.TO, sendMail);
-                    message.setSubject("FMFI Discord server verification code");
-                    message.setText(randomCode);
-
-                    Transport.send(message);
-                    event.reply("Your random code has been sent your university email").setEphemeral(true).queue();
-                }
-                catch (Exception e) {
-                    logger.error("Failed to send mail", e);
-                    event.reply("Failed to send an email").setEphemeral(true).queue();
-                }
+                event.reply("Your random code has been sent your university email").setEphemeral(true).queue();
             }
             case CommandConf -> {
                 User discordUser = event.getUser();
