@@ -61,9 +61,8 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.ROLE, CommandAuthRole, "Requested role", true),
                 Commands.slash(CommandConf, "Confirm the authentication")
                         .setGuildOnly(true)
-                        .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
-                        //.setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE))
-                        //.setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES))
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE))
+                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES))
                         .addOption(OptionType.STRING, CommandConfCode, "Received code", true)
         ).queue();
     }
@@ -71,6 +70,7 @@ public class Main extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
     {
+        event.deferReply(true).queue();
         // make sure we handle the right command
         switch (event.getName()) {
             case CommandAuth -> {
@@ -78,18 +78,21 @@ public class Main extends ListenerAdapter {
                 String discordName = event.getUser().getName();
                 String aisName = event.getOption(CommandAuthAisName, OptionMapping::getAsString);
                 logger.info("[AUTH REQUEST] User: {} | Ais: {} | Role: {} ", discordName, aisName, role.getName());
+
                 if (!acceptedRoles.contains(role.getName())) {
                     logger.info("User {} requested invalid role {}", discordName, role);
-                    event.reply("Requested role is not permitted, request following roles: " + String.join(", ", acceptedRoles)).setEphemeral(true).queue();
+                    event.getHook().sendMessage("Requested role is not permitted, request following roles: " + String.join(", ", acceptedRoles)).setEphemeral(true).queue();
                     break;
                 }
+
+                // check if user already has assigned role
                 List<String> commonRoles = event.getMember().getRoles().stream()
                         .map(Role::getName)
-                        .filter(r -> acceptedRoles.contains(r))
+                        .filter(acceptedRoles::contains)
                         .toList();
                 if (!commonRoles.isEmpty()) {
                     logger.info("User {} already has roles {}", discordName, commonRoles);
-                    event.reply("You already have assigned role: " + String.join(", ", commonRoles)).setEphemeral(true).queue();
+                    event.getHook().sendMessage("You already have assigned role: " + String.join(", ", commonRoles)).setEphemeral(true).queue();
                     break;
                 }
 
@@ -110,15 +113,16 @@ public class Main extends ListenerAdapter {
                     preparedStatement.setString(2, role.getId());
                     preparedStatement.setString(3, randomCode);
                     preparedStatement.executeUpdate();
+                    preparedStatement.close();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
 
                 if(!mailer.sendMail(aisName, "FMFI Discord server verification code", randomCode)) {
-                    event.reply("Failed to send mail to your account").setEphemeral(true).queue();
+                    event.getHook().sendMessage("Failed to send mail to your account").setEphemeral(true).queue();
                     break;
                 }
-                event.reply("Your random code has been sent your university email").setEphemeral(true).queue();
+                event.getHook().sendMessage("Your random code has been sent your university email").setEphemeral(true).queue();
             }
             case CommandConf -> {
                 User discordUser = event.getUser();
@@ -133,7 +137,7 @@ public class Main extends ListenerAdapter {
 
                     if(!resultSet.next()) {
                         logger.info("Failed to verify {} with wrong code {}", discordName, code);
-                        event.reply("Invalid verification code").setEphemeral(true).queue();
+                        event.getHook().sendMessage("Invalid verification code").setEphemeral(true).queue();
                         break;
                     }
 
@@ -147,7 +151,7 @@ public class Main extends ListenerAdapter {
                     Role role = guild.getRoleById(roleId);
                     guild.addRoleToMember(discordUser, role).queue();
 
-                    event.reply("Your role has been set to " + role.getName()).setEphemeral(true).queue();
+                    event.getHook().sendMessage("Your role has been set to " + role.getName()).setEphemeral(true).queue();
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
