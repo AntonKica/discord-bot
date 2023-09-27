@@ -42,7 +42,8 @@ public class CommandProcessorListTimedOut implements CommandProcessor {
         String query = "select accountName, suspendedFrom, suspendedCount from AccountTimeout order by accountName";
         try {
             var message = new StringBuilder();
-            message.append("Account | Suspended from | Suspended count\n--------------------------\n");
+            message.append("Account | Suspended from | Suspended count\n" +
+                    "-------------------------------------------\n");
             ResultSet result = connection.createStatement().executeQuery(query);
 
             while(result.next()) {
