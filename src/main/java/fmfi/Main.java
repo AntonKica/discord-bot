@@ -30,7 +30,8 @@ public class Main extends ListenerAdapter {
 
         commandProcessors = List.of(
                 new CommandProcessorAuth(connection, mailer),
-                new CommandProcessorConf(connection)
+                new CommandProcessorConf(connection),
+                new CommandProcessorListTimedOut(connection)
         );
         // We don't need any intents for this bot. Slash commands work without any intents!
         JDA jda = JDABuilder.createLight(System.getProperty("discord.token"), Collections.emptyList())
