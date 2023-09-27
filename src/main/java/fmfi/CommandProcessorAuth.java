@@ -41,9 +41,9 @@ public class CommandProcessorAuth implements CommandProcessor {
     public CommandData getCommandData() {
         return Commands.slash("auth", "Request an authentication")
                 .setGuildOnly(true)
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE))
                 .addOption(OptionType.STRING, "ais-name", "Your AIS name", true)
-                .addOption(OptionType.ROLE, "role", "Requested role", true);
+                .addOption(OptionType.ROLE, "role", "Requested role", true)
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR));
     }
 
     public void process(SlashCommandInteractionEvent event) {
@@ -153,21 +153,22 @@ public class CommandProcessorAuth implements CommandProcessor {
 
             LocalDateTime suspendedUntil = getSuspendedTime(suspendedFrom, suspendedCount);
             if(suspendedUntil.isAfter(LocalDateTime.now())) {
-                String suspendedUntilFormatted = suspendedUntil.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                String message = MessageFormat.format("The account {0} is suspended until {1}.", name, suspendedUntilFormatted);
-                hook.sendMessage(message).queue();
+                String message = MessageFormat.format("The account {0} is suspended until {1}.",
+                        name,
+                        formatLocalDateTime(suspendedUntil));
+                hook.sendMessage(message).setEphemeral(true).queue();
                 return true;
             } else {
                 return false;
             }
         } catch (SQLException e) {
             logger.error("Exception in checking for timeout.", e);
-            hook.sendMessage("There was an error while processing your request.").queue();
+            hook.sendMessage("There was an error while processing your request.").setEphemeral(true).queue();
             return true;
         }
     }
     @NotNull
-    private static LocalDateTime getSuspendedTime(LocalDateTime suspendedFrom, int suspendedCount) {
+    public static LocalDateTime getSuspendedTime(LocalDateTime suspendedFrom, int suspendedCount) {
         LocalDateTime suspendedUntil;
         switch (suspendedCount) {
             case 0 -> {
@@ -187,5 +188,9 @@ public class CommandProcessorAuth implements CommandProcessor {
             }
         }
         return suspendedUntil;
+    }
+
+    public static String formatLocalDateTime(LocalDateTime localDateTime) {
+        return localDateTime.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
     }
 }

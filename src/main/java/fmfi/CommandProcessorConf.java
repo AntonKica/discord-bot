@@ -37,9 +37,8 @@ public class CommandProcessorConf implements CommandProcessor {
     public CommandData getCommandData() {
         return Commands.slash("conf", "Confirm the authentication")
                 .setGuildOnly(true)
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE))
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES))
-                .addOption(OptionType.STRING, "code", "Received code", true);
+                .addOption(OptionType.STRING, "code", "Received code", true)
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR));
     }
 
     @Override
