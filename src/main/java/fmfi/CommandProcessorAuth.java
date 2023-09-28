@@ -42,8 +42,7 @@ public class CommandProcessorAuth implements CommandProcessor {
         return Commands.slash("auth", "Request an authentication")
                 .setGuildOnly(true)
                 .addOption(OptionType.STRING, "ais-name", "Your AIS name", true)
-                .addOption(OptionType.ROLE, "role", "Requested role", true)
-                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR));
+                .addOption(OptionType.ROLE, "role", "Requested role", true);
     }
 
     public void process(SlashCommandInteractionEvent event) {
